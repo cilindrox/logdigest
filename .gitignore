@@ -1,0 +1,21 @@
+# Ignore everything
+*
+!*/
+
+# But not these files...
+!/.gitignore
+!/.editorconfig
+!/.dockerignore
+!/Dockerfile
+!/docker-bake.hcl
+!/.python-version
+!/pyproject.toml
+
+!*.py
+!*.yaml
+!*.yml
+!README.md
+!LICENSE
+!Makefile
+
+!tests/fixtures/access.log

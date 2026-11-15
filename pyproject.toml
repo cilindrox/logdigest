@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "logdigest"
 version = "0.1.0"
@@ -9,7 +5,7 @@ description = "Digest HTTP access logs into error rates per time bucket and nois
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires_python = ">=3.11"
+requires-python = ">=3.11"
 dependencies = []  # stdlib only
 keywords = ["logs", "observability", "cli"]
 classifiers = [
@@ -18,8 +14,15 @@ classifiers = [
     "Topic :: System :: Logging",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8", "mypy>=2", "ruff>=0.17"]
+
 [project.scripts]
 logdigest = "logdigest.cli:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]

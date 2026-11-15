@@ -50,3 +50,19 @@ def test_dash_size_is_zero():
     assert isinstance(entry, LogEntry)
     assert entry.size == 0
     assert entry.status == 200
+
+def test_reader_does_not_read_ahead():
+    logs: list[int] = []
+
+    def lines():
+        for i in range(1_000):
+            logs.append(i)
+            yield GOOD
+
+    it = read_entries(lines())
+    line_num, first = next(it)
+
+    assert line_num == 1
+    assert isinstance(first, LogEntry)
+    assert logs == [0]
+    assert 1 + sum(1 for _ in it) == 1_000

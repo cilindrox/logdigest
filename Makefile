@@ -37,9 +37,8 @@ ruff:  ## Run ruff check
 test: lint  ## Run tests
 	@pytest
 
-test-cov-html: lint  ## Run test coverage
-	@go test -covermode=count -coverprofile=coverage.out ./... \
-	&& go tool cover -html=coverage.out
+test-cov: lint  ## Run test coverage
+	@pytest -q --cov=logdigest --cov-report=term-missing
 
 ##@ Helpers
 .PHONY: help

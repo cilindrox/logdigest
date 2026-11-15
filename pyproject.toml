@@ -15,7 +15,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "mypy>=2", "ruff>=0.17"]
+dev = ["pytest>=8", "pytest-cov>=7", "mypy>=2", "ruff>=0.17"]
 
 [project.scripts]
 logdigest = "logdigest.cli:main"
@@ -37,7 +37,7 @@ files = ["src"]
 python_version = "3.11"
 
 [tool.ruff]
-line-length = 79
+line-length = 80
 target-version = "py311"
 
 [tool.ruff.lint]

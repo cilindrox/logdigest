@@ -1,10 +1,11 @@
 import argparse
+import io
 import json
 import logging
 import sys
 from collections import Counter
-from collections.abc import Iterator
-from contextlib import nullcontext
+from collections.abc import Iterable
+from contextlib import AbstractContextManager, nullcontext
 from datetime import UTC, datetime
 from typing import TextIO
 
@@ -22,8 +23,14 @@ logger = logging.getLogger(__name__)
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="logdigest",
-        description="Summarize HTTP access logs: error counts over time, noisiest paths.",
-        epilog="Example: journalctl -u api --no-pager | logdigest - -n 5 --status 500",
+        description=(
+            "Summarize HTTP access logs: error counts over time,"
+            "noisiest paths."
+        ),
+        epilog=(
+            "Example: journalctl -u api --no-pager | "
+            "logdigest - -n 5 --status 500"
+        ),
     )
     parser.add_argument(
         "path",
@@ -56,7 +63,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--json", action="store_true", help="emit JSON instead of tables"
     )
     parser.add_argument(
-        "--verbose", help="increase log-level verbosity"
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="increase log-level verbosity",
     )
     return parser
 
@@ -65,14 +75,24 @@ def _iso8601(value: str) -> datetime:
     try:
         dt = datetime.fromisoformat(value)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(f"not an ISO-8601 timestamp: {value!r}") from exc
+        raise argparse.ArgumentTypeError(
+            f"not an ISO-8601 timestamp: {value!r}"
+        ) from exc
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
-def _open(path: str) -> TextIO:
+def _open_stream(path: str) -> AbstractContextManager[TextIO]:
     if path == "-":
-        return sys.stdin
+        return nullcontext(_stdin_text())
     return open(path, encoding="utf-8", errors="replace")
+
+
+def _stdin_text() -> TextIO:
+    """stdin with the same decoding policy as files."""
+    stream = sys.stdin
+    if isinstance(stream, io.TextIOWrapper):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+    return stream
 
 
 def summarize(
@@ -116,7 +136,6 @@ def summarize(
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    ctx = nullcontext(sys.stdin) if args.path == "-" else _open(args.path)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.WARNING,
         format="%(levelname)s: %(message)s",
@@ -125,18 +144,18 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        with ctx as fh:
+        with _open_stream(args.path) as fh:
             result = summarize(
                 read_entries(fh),
                 since=args.since,
                 bucket=args.bucket,
                 top=args.top,
                 threshold=args.status)
-    except FileNotFoundError:
-        logger.error("%s: no such file", args.path)
-        return 2
     except BrokenPipeError:
         return 0
+    except OSError as exc:
+        logger.error("%s: %s", exc.filename or args.path, exc.strerror or exc)
+        return 2
 
     if args.json:
         json.dump(result, sys.stdout, indent=2)

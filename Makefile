@@ -40,6 +40,10 @@ test: lint  ## Run tests
 test-cov: lint  ## Run test coverage
 	@pytest -q --cov=logdigest --cov-report=term-missing
 
+test-cov-html: lint  ## Run test coverage
+	@pytest -q --cov=logdigest --cov-report=term-missing --cov-report=html && \
+		open htmlcov/index.html
+
 ##@ Helpers
 .PHONY: help
 

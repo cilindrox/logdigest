@@ -18,6 +18,7 @@ LOG_PATTERN = re.compile(
 )
 TIMESTAMP_FORMAT = "%d/%b/%Y:%H:%M:%S %z"
 
+
 class Skip(Enum):
     UNKNOWN_FORMAT = "unknown_format"
     MALFORMED = "malformed"
@@ -58,7 +59,7 @@ def parse_line(line: str) -> LogEntry | Skip:
     )
 
 
-def read_entries(lines: Iterable[str]) -> Iterator[tuple[int, LogEntry | Skip]]:
-    """Stream (line_number, result) pairs."""
-    for line_num, line in enumerate(lines, start=1):
-        yield line_num, parse_line(line.rstrip("\r\n"))
+def read_entries(lines: Iterable[str]) -> Iterator[LogEntry | Skip]:
+    """Stream parse results. Never raises on bad input."""
+    for line in lines:
+        yield parse_line(line.rstrip("\r\n"))

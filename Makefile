@@ -18,6 +18,13 @@ SHELL := /usr/bin/env bash
 # warning from happening when running make without arguments
 MAKECMDGOALS ?=
 
+##
+# Git and versioning information
+##
+
+git_version := $(shell git describe --tags --always --match='v*' --abbrev=14 --dirty)
+VERSION ?= $(git_version)
+
 ##@ Linting and static checks
 
 .PHONY: lint mypy ruff
@@ -43,6 +50,19 @@ test-cov: lint  ## Run test coverage
 test-cov-html: lint  ## Run test coverage
 	@pytest -q --cov=logdigest --cov-report=term-missing --cov-report=html && \
 		open htmlcov/index.html
+
+##@ Build
+
+.PHONY: bake clean lint-docker
+
+bake: lint-docker  ## Bake Docker image locally
+	@VERSION=$(VERSION) docker buildx bake image-local
+
+clean:  ## Clean all temporary files
+	@rm -rfv htmlcov
+
+lint-docker:  ## Run hadolint
+	@hadolint Dockerfile
 
 ##@ Helpers
 .PHONY: help

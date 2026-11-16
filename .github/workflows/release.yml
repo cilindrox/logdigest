@@ -52,7 +52,7 @@ jobs:
     - name: Compute image tag
       id: meta
       env:
-        GITHUB_EVENT_NAME: ${{ github.event.name }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
         GITHUB_EVENT_INPUTS_TAG: ${{ github.event.inputs.tag }}
       run: |
         if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then

@@ -45,4 +45,9 @@ jobs:
 
     - run: mypy
 
-    - run: pytest
+    - run: |-
+        pytest \
+          --cov=logdigest \
+          --cov-report=term-missing \
+          --cov-branch \
+          --cov-fail-under 90

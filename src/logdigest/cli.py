@@ -2,19 +2,21 @@ import argparse
 import io
 import json
 import logging
+import os
 import sys
 from collections import Counter
 from collections.abc import Iterable
-from contextlib import AbstractContextManager, nullcontext
+from contextlib import AbstractContextManager, nullcontext, suppress
 from datetime import UTC, datetime
 from typing import TextIO
 
 from .parse import LogEntry, Skip, read_entries
+from .report import Summary, render_tables
 
 BUCKETS = {
     "minute": "%Y-%m-%d %H:%M",
     "hour": "%Y-%m-%d %H:00",
-    "day": "%Y-%m-%d"
+    "day": "%Y-%m-%d",
 }
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="logdigest",
         description=(
-            "Summarize HTTP access logs: error counts over time,"
+            "Summarize HTTP access logs: error counts over time, "
             "noisiest paths."
         ),
         epilog=(
@@ -95,6 +97,14 @@ def _stdin_text() -> TextIO:
     return stream
 
 
+def _silence_stdout() -> None:
+    """Point fd 1 at /dev/null so the interpreter's final flush can't raise."""
+    with suppress(OSError, ValueError, io.UnsupportedOperation):
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        os.close(devnull)
+
+
 def summarize(
     results: Iterable[LogEntry | Skip],
     *,
@@ -102,36 +112,39 @@ def summarize(
     bucket: str,
     top: int,
     threshold: int,
-) -> dict[str, object]:
+) -> Summary:
     fmt = BUCKETS[bucket]
     errors: Counter[str] = Counter()
     paths: Counter[str] = Counter()
     statuses: Counter[int] = Counter()
     skips: Counter[str] = Counter()
+    filtered = 0
     total = 0
 
     for line_num, item in enumerate(results, start=1):
         if isinstance(item, Skip):
             skips[item.value] += 1
-            logger.debug('L%d: %s', line_num, item.value)
+            logger.debug("L%d: %s", line_num, item.value)
             continue
 
         if since is not None and item.ts < since:
+            filtered += 1
             continue
 
-        total +=1
+        total += 1
         statuses[item.status] += 1
         if item.status >= threshold:
             errors[item.ts.strftime(fmt)] += 1
             paths[item.path] += 1
-    return {
-        "total": total,
-        "errors": sum(errors.values()),
-        "worst_buckets": errors.most_common(top),
-        "worst_paths": paths.most_common(top),
-        "statuses": dict(sorted(statuses.items())),
-        "skipped": dict(skips),
-    }
+    return Summary(
+        total=total,
+        filtered=filtered,
+        errors=sum(errors.values()),
+        worst_buckets=errors.most_common(top),
+        worst_paths=paths.most_common(top),
+        statuses=dict(sorted(statuses.items())),
+        skipped=dict(skips),
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -150,16 +163,32 @@ def main(argv: list[str] | None = None) -> int:
                 since=args.since,
                 bucket=args.bucket,
                 top=args.top,
-                threshold=args.status)
+                threshold=args.status,
+            )
+
     except BrokenPipeError:
+        _silence_stdout()
         return 0
     except OSError as exc:
-        logger.error("%s: %s", exc.filename or args.path, exc.strerror or exc)
+        detail = exc.strerror or str(exc) or type(exc).__name__
+        logger.error("%s: %s", exc.filename or args.path, detail)
         return 2
 
-    if args.json:
-        json.dump(result, sys.stdout, indent=2)
-        print()
-        return 0
+    if result["total"] == 0 and result["skipped"]:
+        logger.error(
+            "parsed 0 of %d lines. Invalid input format",
+            sum(result["skipped"].values()),
+        )
+        return 1
 
-    return 0
+    try:
+        if args.json:
+            json.dump(result, sys.stdout, indent=2)
+            print()
+            return 0
+
+        print(render_tables(result, threshold=args.status))
+        return 0
+    except BrokenPipeError:
+        _silence_stdout()
+        return 0

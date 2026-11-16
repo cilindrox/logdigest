@@ -56,13 +56,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="ignore entries before this time (naive times are read as UTC)",
     )
     parser.add_argument(
+        "-b",
         "--bucket",
         choices=tuple(BUCKETS),
         default="minute",
         help="time bucket (default: minute)",
     )
     parser.add_argument(
-        "--json", action="store_true", help="emit JSON instead of tables"
+        "--json", action="store_true", help="print JSON instead of tables"
     )
     parser.add_argument(
         "-v",

@@ -1,6 +1,6 @@
 [project]
 name = "logdigest"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Digest HTTP access logs into error rates per time bucket and noisiest endpoints."
 readme = "README.md"
 license = "MIT"
@@ -20,9 +20,18 @@ dev = ["pytest>=8", "pytest-cov>=7", "mypy>=2", "ruff>=0.17"]
 [project.scripts]
 logdigest = "logdigest.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/cilindrox/logdigest"
+Repository = "https://github.com/cilindrox/logdigest"
+Issues = "https://github.com/cilindrox/logdigest/issues"
+Changelog = "https://github.com/cilindrox/logdigest/releases"
+
 [build-system]
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "logdigest.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]

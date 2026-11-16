@@ -1,0 +1,16 @@
+## Deny everything by default
+/*
+
+## Except these
+!src/
+!*.py
+!**/*.py
+
+## But not these
+test_*.py
+*_test.py
+**/tests/**
+**/test/**
+
+**/__pycache__/**
+**/*.py[cod]

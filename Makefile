@@ -37,6 +37,9 @@ mypy:  ## Run mypy
 ruff:  ## Run ruff check
 	@ruff check .
 
+fmt:  ## Format code with ruff
+	@ruff format .
+
 ##@ Testing
 
 .PHONY: test test-cov-html
@@ -45,11 +48,15 @@ test: lint  ## Run tests
 	@pytest
 
 test-cov: lint  ## Run test coverage
-	@pytest -q --cov=logdigest --cov-report=term-missing
+	@pytest -q --cov=logdigest --cov-report=term-missing --cov-branch
 
 test-cov-html: lint  ## Run test coverage
-	@pytest -q --cov=logdigest --cov-report=term-missing --cov-report=html && \
-		open htmlcov/index.html
+	@pytest -q \
+		--cov=logdigest \
+		--cov-report=term-missing \
+		--cov-report=html \
+		--cov-branch \
+		&& open htmlcov/index.html
 
 ##@ Build
 

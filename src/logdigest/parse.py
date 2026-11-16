@@ -37,13 +37,17 @@ class LogEntry:
 
 
 def parse_line(line: str) -> LogEntry | Skip:
-    """Return a LogEntry or None if the line doesn't match. Never raises."""
+    """Return a LogEntry, or the reason if a line was rejected. Never raises."""
     m = LOG_PATTERN.match(line)
     if m is None:
         return Skip.UNKNOWN_FORMAT
     try:
         ts = datetime.strptime(m["ts"], TIMESTAMP_FORMAT)
     except ValueError:
+        return Skip.MALFORMED
+
+    status = int(m["status"])
+    if status != 0 and not 100 <= status <= 599:
         return Skip.MALFORMED
 
     raw_size = m["size"]
@@ -53,7 +57,7 @@ def parse_line(line: str) -> LogEntry | Skip:
         path=m["path"],
         referer=m["referer"],
         size=0 if raw_size == "-" else int(raw_size),
-        status=int(m["status"]),
+        status=status,
         ts=ts,
         ua=m["ua"],
     )

@@ -36,6 +36,11 @@ def test_parses_combined_format():
     assert e.size == 2
 
 
+@pytest.mark.parametrize("code", ["600", "999"])
+def test_out_of_range_status_is_malformed(code):
+    assert parse_line(GOOD.replace(" 200 2 ", f" {code} 2 ")) is Skip.MALFORMED
+
+
 def test_ipv6_is_parsed():
     entry = parse_line(GOOD.replace("10.0.0.5", "2001:db8::1"))
     assert isinstance(entry, LogEntry)
@@ -50,23 +55,19 @@ def test_fixture_counts():
     assert len(malformed) == 1
 
 
-@pytest.mark.parametrize("line", [
-    "",
-    "garbage",
-    GOOD.replace("200", "5xx"),
-    "-- comment",
-    '2026/11/13 13:57:45 [error] 412#0: *1189 upstream timed out',
-    '31 - - [13/Nov/2026:13:57:44 +0000] "GET /x HTTP/1.1" 50 231 "-" "r"',
-])
+@pytest.mark.parametrize(
+    "line",
+    [
+        "",
+        "garbage",
+        GOOD.replace("200", "5xx"),
+        "-- comment",
+        "2026/11/13 13:57:45 [error] 412#0: *1189 upstream timed out",
+        '31 - - [13/Nov/2026:13:57:44 +0000] "GET /x HTTP/1.1" 50 231 "-" "r"',
+    ],
+)
 def test_malformed_lines_return_unknown_format(line):
     assert parse_line(line) is Skip.UNKNOWN_FORMAT
-
-
-@pytest.mark.parametrize("line", [
-    '1.2.3.4 - - [13/Nov/2026:13:99:00 +0000] "GET / HTTP/1.1" 200 0 "-" "c"',
-])
-def test_parse_line_returns_none(line):
-    assert parse_line(line) is Skip.MALFORMED
 
 
 def test_dash_size_is_zero():

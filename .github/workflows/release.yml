@@ -1,4 +1,4 @@
-name: Build and Push Controller Image
+name: Build and Push Image
 
 # yamllint disable-line rule:truthy
 on:
@@ -14,14 +14,10 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}@${{ github.event.pull_request.head.label || github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -45,7 +41,7 @@ jobs:
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
       with:
-        registry: ${{ env.REGISTRY }}
+        registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -67,10 +63,5 @@ jobs:
         files: docker-bake.hcl
         targets: image-all
         push: true
-        set: |
-          *.tags=ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.TAG }}
-          *.args.VERSION=${{ steps.meta.outputs.TAG }}
       env:
-        REGISTRY: ${{ env.REGISTRY }}
-        IMAGE_NAME: ${{ env.IMAGE_NAME }}
-        TAG: ${{ steps.meta.outputs.TAG }}
+        VERSION: ${{ steps.meta.outputs.TAG }}
